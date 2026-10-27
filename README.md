@@ -1,13 +1,8 @@
 # Chatify
-A startup focused on improving the accuracy, reliability, and security of AI usage in businesses
 
-# Chatify
+> Ekstenzija za preglednik koja zaposlenicima pomaže pisati bolje promptove i zaustavlja slanje osjetljivih podataka u AI alate. Firmi daje agregirane uvide u korištenje AI-ja.
 
-> AI koučing za zaposlenike i zaštita osjetljivih podataka za firme. Ekstenzija za preglednik koja pomaže pisati bolje promptove i zaustavlja slanje osjetljivih podataka u AI alate.
-
-**Status:** u razvoju (faza dizajna i planiranja) · **Naziv:** radni · **Licenca:** još nije odabrana
-
----
+**Status:** u razvoju (dizajn i planiranje gotovi, kreće izrada) · **Naziv:** radni · **Licenca:** još nije odabrana
 
 ## Sadržaj
 
@@ -18,55 +13,55 @@ A startup focused on improving the accuracy, reliability, and security of AI usa
 - [Tehnologije](#tehnologije)
 - [Plan razvoja](#plan-razvoja)
 - [Struktura repozitorija](#struktura-repozitorija)
-- [Dizajn i dokumentacija](#dizajn-i-dokumentacija)
+- [Dokumentacija i dizajn](#dokumentacija-i-dizajn)
 - [Pokretanje](#pokretanje)
-- [Doprinos](#doprinos)
 - [Poznata ograničenja](#poznata-ograničenja)
-
----
 
 ## O projektu
 
 Zaposlenici sve češće koriste ChatGPT, Claude i Gemini, ali bez smjernica i često preko osobnih računa. Posljedica su loši promptovi (nejasni, bez konteksta, kontradiktorni) i osjetljivi podaci (OIB, IBAN, API ključevi) zalijepljeni u vanjske alate.
 
-Chatify rješava oba problema na mjestu gdje nastaju, u pregledniku, prije nego se prompt pošalje.
+Chatify rješava oba problema na mjestu gdje nastaju: **unutar stranice AI alata**, prije nego se prompt pošalje. Nije zasebna aplikacija; jedina zasebna aplikacija je web nadzorna ploča za admina firme.
 
-**Po čemu se razlikujemo:** većina postojećih alata dolazi iz sigurnosti i nadzora za velike firme. Chatify dolazi iz edukacije i produktivnosti, obrađuje osjetljive podatke lokalno u pregledniku i cilja mala i srednja poduzeća u EU-u.
+**Po čemu se razlikujemo:** većina postojećih alata dolazi iz sigurnosti i nadzora za velike firme. Chatify dolazi iz edukacije i produktivnosti, osjetljive podatke prepoznaje lokalno u pregledniku i cilja mala i srednja poduzeća u EU-u, na hrvatskom jeziku.
 
 ## Funkcije
 
 | Funkcija | Što radi |
 | --- | --- |
-| **Provjera prompta** | Boji nejasne dijelove, one kojima fali kontekst i kontradikcije; predlaže popravke i daje ocjenu 0–100. Ne piše umjesto korisnika, korisnik odlučuje. |
+| **Provjera prompta** | Boji nejasne dijelove, one kojima fali kontekst i kontradikcije; predlaže popravke i daje ocjenu 0–100. Ne piše umjesto korisnika. |
 | **Upozorenje o osjetljivim podacima** | Prije slanja prepoznaje OIB, IBAN, API ključeve i e-mail adrese; nudi zamjenu oznakama, uređivanje ili slanje svejedno. |
-| **Nadzorna ploča** | Aktivni korisnici, prosječna kvaliteta promptova, zaustavljeni osjetljivi podaci, procjena uštede vremena, pregled po timovima i tjedne preporuke. |
-| **Politike** | Admin bira koja se pravila primjenjuju i što se događa kad se podatak pronađe: zamijeni, blokiraj ili upozori. |
+| **Nadzorna ploča** | Aktivni korisnici, prosječna kvaliteta, zaustavljeni osjetljivi podaci, procjena uštede vremena, pregled po timovima, tjedne preporuke. |
+| **Politike** | Admin bira pravila i radnju: zamijeni, blokiraj ili upozori. |
+
+Korisnik uvijek odlučuje: Chatify označava i predlaže, nikad sam ne mijenja prompt i ne šalje ništa bez klika.
 
 ## Kako radi
 
 ```
-   Preglednik zaposlenika (lokalno)
-  ┌─────────────────────────────────┐
-  │  Detektori osjetljivih podataka │──┐
-  │  Pravila kvalitete prompta      │  │  samo agregirani
-  └──────────────┬──────────────────┘  │  događaji
-                 │ na klik "Poboljšaj" │
-                 ▼                     ▼
-        ┌────────────────┐      ┌─────────────┐      ┌──────────────────┐
-        │ Cloudflare     │      │  Supabase   │ ───▶ │ Nadzorna ploča   │
-        │ Worker         │      │  (Postgres) │      │ (Next.js)        │
-        └───────┬────────┘      └─────────────┘      └──────────────────┘
-                ▼
-        ┌────────────────┐
-        │ Jezični model  │
-        │ (bez pohrane)  │
-        └────────────────┘
+ Preglednik zaposlenika (lokalno)
+┌──────────────────────────────────┐
+│ ChatGPT stranica + Chatify sloj  │
+│  - detektori (shared/)           │──── samo agregirani događaji ───┐
+│  - pravila kvalitete prompta     │                                 │
+└────────────────┬─────────────────┘                                 ▼
+                 │ tek na klik "Poboljšaj"             ┌──────────────────────────┐
+                 ▼ (nakon zamjene oznakama)            │ Cloudflare Worker (Hono) │
+        ┌──────────────────┐                           │ JWT, zod, kape, ponovna  │
+        │ Cloudflare Worker│ ── ponovna provjera ──▶   │ provjera detektorima     │
+        └────────┬─────────┘                           └────────────┬─────────────┘
+                 ▼                                                  ▼
+        ┌──────────────────┐                           ┌──────────────────────────┐
+        │ Jezični model    │                           │ Supabase (Postgres + RLS)│
+        │ (iza LlmProvider)│                           └────────────┬─────────────┘
+        └──────────────────┘                                        ▼
+                                                        Nadzorna ploča (Vite + React)
 ```
 
 1. Ekstenzija prati polje za unos na podržanim AI stranicama.
 2. Detektori i pravila rade **lokalno**, bez slanja teksta bilo gdje.
-3. Samo kad korisnik klikne "Poboljšaj", prompt (nakon zamjene osjetljivih podataka oznakama) ide preko posrednika na jezični model.
-4. Na server idu samo anonimni, agregirani događaji (tim, alat, tjedan, ocjena, vrsta zaustavljenog podatka).
+3. Samo kad korisnik klikne "Poboljšaj", prompt (nakon zamjene osjetljivih podataka oznakama) ide na Worker, koji ga **ponovno provjeri** istim detektorima i odbije ako je ostalo nešto osjetljivo, pa tek onda šalje modelu.
+4. Na server idu samo agregirani događaji: tim, alat, tjedan, ocjena, vrsta zaustavljenog podatka.
 
 ## Privatnost
 
@@ -74,67 +69,80 @@ Chatify rješava oba problema na mjestu gdje nastaju, u pregledniku, prije nego 
 | --- | --- | --- |
 | Osjetljivi podaci u promptu | Lokalno u pregledniku | Samo vrsta ("OIB pronađen"), nikad sam podatak |
 | Ocjena kvalitete (pravila) | Lokalno | Broj ocjene |
-| Prijedlozi "Poboljšaj" | Server, tek na klik, nakon zamjene oznakama | Ništa; kod dobavljača modela isključena pohrana |
+| Prijedlozi "Poboljšaj" | Worker i dobavljač modela, tek na klik, nakon zamjene oznakama | Mi ne spremamo ništa. **Dobavljač modela može zadržati zahtjev do 30 dana (nadzor zlouporabe) i ne koristi ga za treniranje.** Potpuno isključenje zadržavanja traži odobrenje dobavljača. |
 | Korištenje po timu | Server | Tim, alat, tjedan, ocjena, vrsta zaustavljenog podatka |
 
 Pregled po pojedinom zaposleniku isključen je prema zadanim postavkama i uključuje se samo uz pristanak svakog zaposlenika.
 
+Izolacija firmi: svaka tablica ima Row Level Security, a testovi baze dokazuju da firma A ne vidi podatke firme B.
+
 ## Tehnologije
 
-| Sloj | Tehnologija |
-| --- | --- |
-| Ekstenzija | TypeScript, [WXT](https://wxt.dev) (Manifest V3, Chrome i Edge) |
-| Sučelje u ekstenziji | React, Tailwind, Shadow DOM |
-| Bojanje prompta | CSS Custom Highlight API |
-| Detektori | Regularni izrazi + kontrolni zbrojevi (OIB, IBAN mod 97, prefiksi ključeva) |
-| Backend i prijava | Supabase (Postgres) |
-| Posrednik prema modelu | Cloudflare Workers |
-| Nadzorna ploča | Next.js, Recharts, Cloudflare Pages |
-| E-pošta | Resend |
-| Testovi | GitHub Actions, Playwright (dnevna provjera da ekstenzija pronalazi polje za unos) |
+| Sloj | Tehnologija | Napomena |
+| --- | --- | --- |
+| Ekstenzija | TypeScript, [WXT](https://wxt.dev) (Manifest V3, Chrome i Edge), React, Tailwind, Shadow DOM | Bojanje preko CSS Custom Highlight API |
+| Zajednički kod | `shared/`: zod sheme i detektori | Isti kod u ekstenziji i na Workeru |
+| Backend | Cloudflare Workers + Hono + zod | Besplatna razina; ne Express |
+| Baza i prijava | Supabase: Postgres, RLS, Auth (Google/Microsoft) | Bez Prisme jer zaobilazi RLS; SQL migracije kroz Supabase CLI |
+| Jezični model | Iza vlastitog sučelja `LlmProvider` | Model se bira evaluacijom na ~30 izmišljenih hrvatskih promptova |
+| Nadzorna ploča | Vite + React, TanStack Query, Recharts, Cloudflare Pages | Statična; ne Next.js |
+| E-pošta | Resend | Tjedni izvještaj preko Cloudflare Cron Triggers |
+| Naplata | Tek nakon pilota (Stripe ili merchant-of-record) | Tablice `plans` i `usage_monthly` postoje od početka |
+| Testovi | Vitest, Playwright, `supabase test db` | Dnevna provjera polja za unos |
+| Razvoj i objava | npm workspaces, GitHub Actions, wrangler | Docker samo lokalno (Supabase CLI) |
 
-Cilj je prvih šest mjeseci ostati na besplatnim razinama (procjena troškova ispod 100 €).
+Procjena troškova: ispod 30 € mjesečno tijekom pilota, oko 30 do 60 € kad krenu plaćene firme. Detalji u `docs/ARCHITECTURE.md`.
+
+**Napomena o "ChatGPT pluginu":** ChatGPT plugini ugašeni su u travnju 2024. Naša integracija je content script ekstenzije koji radi unutar stranice. Integracije kroz sam ChatGPT (Custom GPT, MCP aplikacije) ne mogu vidjeti ni zaustaviti ono što korisnik tipka, pa ne zamjenjuju ekstenziju (vidi Fazu 12 u `docs/PROMPTS.md`).
 
 ## Plan razvoja
 
-- [ ] **Tjedni 1–2, Osnova:** čitanje polja za unos na jednom alatu (ChatGPT), prvi dokaz da radi, razgovori s firmama
-- [ ] **Tjedni 3–4, Zaštita podataka:** detektori (OIB, IBAN, ključevi), bojanje, prozor s upozorenjem, zamjena oznakama → *demo prvim firmama*
-- [ ] **Tjedni 5–6, Prompt checker:** pravila bez AI-ja, gumb "Poboljšaj", panel s ocjenom
-- [ ] **Tjedni 7–8, Backend i ploča:** prijava firme, nadzorna ploča, politike, objava ekstenzije (unlisted) → *pilot s 3–5 firmi*
-- [ ] **Nakon pilota:** Claude i Gemini, Edge, dodatne funkcije
+Faze su detaljno opisane u `docs/PROMPTS.md`.
+
+- [ ] **0** Temelj projekta (npm workspaces, WXT, CI)
+- [ ] **1** Detektori OIB / IBAN / ključevi / e-mail u `shared/`
+- [ ] **2** Adapter za ChatGPT i rezervni okvir
+- [ ] **3** Bojanje, upozorenje i presretanje slanja → *demo prvim firmama*
+- [ ] **4** Provjera kvalitete prompta (pravila) i panel
+- [ ] **5** Baza, prijava i događaji
+- [ ] **6** Gumb "Poboljšaj" (Worker + model)
+- [ ] **7** Nadzorna ploča, politike, tjedni izvještaj → *pilot s 3–5 firmi*
+- [ ] **8** Dnevni testovi i otpornost na promjene sučelja
+- [ ] **9** Objava (Chrome Web Store, neprikazano) i pravni minimum
+- [ ] **10** Naplata (tek nakon pilota)
+- [ ] **11** Učvršćivanje
+- [ ] **12** Opcionalno: "Chatify Coach" unutar ChatGPT-a
 
 ## Struktura repozitorija
 
-Planirana struktura (mijenja se tijekom razvoja):
-
 ```
 chatify/
-├── extension/        # ekstenzija za preglednik (WXT, TypeScript, React)
-│   ├── detectors/    # OIB, IBAN, ključevi, e-mail (s testovima)
-│   └── rules/        # pravila kvalitete prompta
-├── worker/           # Cloudflare Worker (posrednik prema modelu)
-├── dashboard/        # nadzorna ploča (Next.js)
-├── supabase/         # shema baze i migracije
-├── docs/             # dokumentacija i plan
+├── extension/    ekstenzija (adapters/, rules/, ui/)
+├── worker/       Cloudflare Worker (Hono)
+├── dashboard/    nadzorna ploča (Vite + React)
+├── shared/       zod sheme i detektori (koriste ekstenzija i Worker)
+├── supabase/     shema, migracije, RLS testovi
+├── e2e/          Playwright testovi
+├── docs/         plan, arhitektura, promptovi za Claude Code
+├── CLAUDE.md     pravila za Claude Code
 └── README.md
 ```
 
-## Dizajn i dokumentacija
+## Dokumentacija i dizajn
 
+- `docs/ARCHITECTURE.md`: odluke o tehnologijama, troškovi, model podataka, rizici
+- `docs/plan.md`: plan izrade prve verzije
+- `docs/PROMPTS.md`: gotovi promptovi za Claude Code po fazama
+- `CLAUDE.md`: pravila rada i privatnosti
 - **Figma (4 zaslona, klikabilan prototip):** https://www.figma.com/design/ak5nDaMh1rsZdqkYiu8TDb
-- **Plan izrade prve verzije (MVP):** https://claude.ai/artifact/HFdpPu7bwp4RUaLGCEKsM9
 
 ## Pokretanje
 
-Kod još nije napisan. Upute za instalaciju i pokretanje dodat će se čim bude prva radna verzija ekstenzije.
-
-## Doprinos
-
-Projekt je u ranoj fazi i radi ga manji tim. Prijedloge i ideje možete otvoriti kao *Issue*. Upute za doprinos i pravila koda dodat će se kasnije.
+Kod još nije napisan. Naredbe se dodaju u `CLAUDE.md` i ovdje u Fazi 0. Kako početi s Claude Codeom: prvi odjeljak u `docs/PROMPTS.md`.
 
 ## Poznata ograničenja
 
-- Ekstenzija ne vidi mobilne i desktop AI aplikacije ni pozive API-ja iz koda.
-- Točan broj tokena po zaposleniku nije moguć iz preglednika, dostupna je samo procjena iz duljine teksta.
-- Ekstenzija ovisi o strukturi stranice AI alata, pa se može slomiti kad alat promijeni sučelje; zato postoje dnevni automatski testovi i rezervni okvir za lijepljenje prompta.
-- Ovo nije pravni savjet. Prije komercijalne upotrebe potrebne su politika privatnosti, ugovor o obradi podataka i provjera pravila o nadzoru zaposlenika.
+- Ne vidi mobilne i desktop AI aplikacije ni pozive API-ja iz koda.
+- Točan broj tokena nije moguć iz preglednika, samo procjena iz duljine teksta.
+- Ovisi o strukturi stranice AI alata i može se slomiti kad alat promijeni sučelje; zato postoje dnevni Playwright testovi i rezervni okvir za lijepljenje prompta.
+- Ovo nije pravni savjet. Prije komercijalne upotrebe potrebni su politika privatnosti, ugovor o obradi podataka i provjera pravila o nadzoru zaposlenika. Treba provjeriti i uvjete korištenja AI alata o dodacima za preglednik.
