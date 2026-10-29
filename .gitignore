@@ -1,0 +1,13 @@
+node_modules/
+.output/
+.wxt/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Secrets: never commit. Copy .env.example to .env.local instead.
+.env
+.env.local
+.env.*.local
+.dev.vars

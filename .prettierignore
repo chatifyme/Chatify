@@ -1,0 +1,8 @@
+node_modules
+.output
+.wxt
+coverage
+dist
+package-lock.json
+# Hand-written docs keep their own formatting.
+*.md
