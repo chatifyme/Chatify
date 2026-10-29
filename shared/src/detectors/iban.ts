@@ -1,3 +1,4 @@
+import type { Finding } from './types';
 // Number of characters in an IBAN, by country. More countries can be added later.
 const IBAN_LENGTHS: Record<string, number> = {
   AT: 20,
@@ -31,4 +32,39 @@ export function isValidIban(value: string): boolean {
   }
 
   return remainder === 1;
+}
+
+export function detectIban(text: string): Finding[] {
+  const findings: Finding[] = [];
+
+  for (const match of text.matchAll(/(?<![A-Za-z0-9])[A-Z]{2}\d{2}/g)) {
+    const start = match.index ?? 0;
+    const expected = IBAN_LENGTHS[(match[0] ?? '').slice(0, 2)];
+    if (expected === undefined) continue;
+
+    // Collect exactly `expected` letters/digits, allowing single spaces between groups.
+    let count = 0;
+    let end = start;
+    let i = start;
+    while (i < text.length && count < expected) {
+      const ch = text.charAt(i);
+      if (/[A-Za-z0-9]/.test(ch)) {
+        count++;
+        i++;
+        end = i;
+      } else if (ch === ' ' && /[A-Za-z0-9]/.test(text.charAt(i + 1))) {
+        i++;
+      } else {
+        break;
+      }
+    }
+    if (count !== expected) continue;
+
+    const candidate = text.slice(start, end).replace(/ /g, '');
+    if (!isValidIban(candidate)) continue;
+
+    findings.push({ type: 'IBAN', start, end, confidence: 'high' });
+  }
+
+  return findings;
 }
