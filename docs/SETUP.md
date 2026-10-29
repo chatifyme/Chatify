@@ -29,6 +29,14 @@ winget install --id GitHub.cli -e            # opcija
 winget install --id Docker.DockerDesktop -e  # tek za Fazu 5
 ```
 
+**Prvo, jednom po računalu:** dopusti PowerShellu pokretanje lokalnih skripti. Bez toga `npm` javlja grešku `npm.ps1 cannot be loaded because running scripts is disabled on this system`.
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+Ova postavka vrijedi samo za tvoj korisnički račun i ne traži administratora. Dopušta lokalne skripte, a skripte preuzete s interneta i dalje moraju biti potpisane. Ako je ne smiješ promijeniti (npr. na računalu firme ili fakulteta), koristi `npm.cmd` umjesto `npm` ili radi u Command Promptu (`cmd`).
+
 Nakon instalacije fnm-a u PowerShell profil (`notepad $PROFILE`) dodaj red `fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression` i otvori novi terminal.
 
 Zbog razlika u završecima redaka na Windowsu repozitorij će imati `.gitattributes`, pa ništa ne treba ručno podešavati.
