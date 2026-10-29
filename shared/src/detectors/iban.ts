@@ -1,4 +1,5 @@
 import type { Finding } from './types';
+
 // Number of characters in an IBAN, by country. More countries can be added later.
 const IBAN_LENGTHS: Record<string, number> = {
   AT: 20,
@@ -59,6 +60,7 @@ export function detectIban(text: string): Finding[] {
       }
     }
     if (count !== expected) continue;
+    if (/[A-Za-z0-9]/.test(text.charAt(end))) continue; // IBAN is followed by more letters/digits
 
     const candidate = text.slice(start, end).replace(/ /g, '');
     if (!isValidIban(candidate)) continue;

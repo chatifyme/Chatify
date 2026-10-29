@@ -46,4 +46,19 @@ describe('detectIban', () => {
   it('ignores an IBAN with a wrong checksum', () => {
     expect(detectIban('HR1210010051863000161')).toHaveLength(0);
   });
+
+    it('stops before a following upper-case word', () => {
+    const text = 'HR1210010051863000160 HVALA';
+    const findings = detectIban(text);
+
+    expect(text.slice(findings[0]?.start, findings[0]?.end)).toBe('HR1210010051863000160');
+  });
+
+  it('ignores a valid IBAN that continues with more characters', () => {
+    expect(detectIban('HR1210010051863000160X')).toHaveLength(0);
+  });
+
+  it('ignores ordinary text', () => {
+    expect(detectIban('Sastanak je u HR12 uredu u 10 sati')).toHaveLength(0);
+  });
 });
