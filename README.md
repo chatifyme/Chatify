@@ -138,7 +138,17 @@ chatify/
 
 ## Pokretanje
 
-Kod još nije napisan. Naredbe se dodaju u `CLAUDE.md` i ovdje u Fazi 0. Kako početi s Claude Codeom: prvi odjeljak u `docs/PROMPTS.md`.
+Potrebno: Node.js 20 ili noviji i Git. Iz korijena repozitorija:
+
+```bash
+npm install
+npm run build
+npm test
+```
+
+Učitavanje ekstenzije u Chrome: otvorite `chrome://extensions`, uključite "Developer mode", kliknite "Load unpacked" i odaberite mapu `extension/.output/chrome-mv3`. Na `chatgpt.com` se dolje desno pojavi oznaka "Chatify je aktivan", a u konzoli poruka `[Chatify] content script active`.
+
+Razvoj s automatskim osvježavanjem: `npm run dev -w extension`. Sve naredbe su u `CLAUDE.md`.
 
 ## Poznata ograničenja
 
