@@ -76,7 +76,7 @@ fnm use
 npm install        # instalira SVE knjižnice i alate iz package-lock.json
 ```
 
-Ove naredbe rade nakon što se Faza 0 spoji u `main`. Do tada repozitorij ima samo dokumente.
+Ove naredbe rade nakon što se Faza 0 spoji u `main`. Do tada: `git switch phase-0-foundation` pa `npm install`.
 
 `npm install` donosi sljedeće; ništa od toga se ne instalira ručno:
 
@@ -130,4 +130,4 @@ npm run lint && npm run typecheck && npm test
 git push -u origin phase-N-kratki-opis   # pa otvori pull request
 ```
 
-Učitavanje ekstenzije u Chrome: `chrome://extensions` → uključi "Developer mode" → "Load unpacked" → odaberi mapu `extension/.output/chrome-mv3`. Točna putanja bit će potvrđena u Fazi 0.
+Učitavanje ekstenzije u Chrome: `chrome://extensions` → uključi "Developer mode" → "Load unpacked" → odaberi mapu `extension/.output/chrome-mv3`.

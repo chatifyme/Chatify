@@ -74,17 +74,16 @@ Detektori i pravila su **čisti moduli bez ovisnosti o pregledniku** da se testi
 
 ## Naredbe
 
-Naredbe nastaju u Fazi 0. **Dok ne postoje, ne izmišljaj ih**; čim nastanu, ažuriraj ovaj odjeljak.
+Sve iz korijena repozitorija (npm workspaces). Node.js 24 LTS (`.nvmrc`), najmanje 22.
 
-Planirano (npm workspaces, iz korijena):
-
-- Instalacija: `npm install`
-- Svi testovi: `npm test`
+- Instalacija: `npm install` (pokreće i `wxt prepare` za tipove ekstenzije)
+- Svi testovi: `npm test` (Vitest, projekti `shared` i `extension`); pokrivenost: `npm run test:coverage`
 - Provjera tipova: `npm run typecheck`
-- Lint: `npm run lint`
-- Razvoj ekstenzije: `npm run dev -w extension`
-- Razvoj Workera: `npm run dev -w worker`
-- Razvoj ploče: `npm run dev -w dashboard`
+- Lint i formatiranje: `npm run lint` (ESLint + Prettier provjera); popravak formata: `npm run format`
+- Build: `npm run build` (Chrome i Edge, izlaz u `extension/.output/chrome-mv3` i `edge-mv3`)
+- Razvoj ekstenzije: `npm run dev -w extension` (Edge: `npm run dev:edge -w extension`)
+- Razvoj Workera: `npm run dev -w worker` (nastaje u Fazi 5, još ne postoji)
+- Razvoj ploče: `npm run dev -w dashboard` (nastaje u Fazi 7, još ne postoji)
 
 ## Način rada
 

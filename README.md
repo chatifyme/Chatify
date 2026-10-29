@@ -99,7 +99,7 @@ Procjena troškova: ispod 30 € mjesečno tijekom pilota, oko 30 do 60 € kad 
 
 Faze su detaljno opisane u `docs/PROMPTS.md`.
 
-- [ ] **0** Temelj projekta (npm workspaces, WXT, CI)
+- [x] **0** Temelj projekta (npm workspaces, WXT, CI)
 - [ ] **1** Detektori OIB / IBAN / ključevi / e-mail u `shared/`
 - [ ] **2** Adapter za ChatGPT i rezervni okvir
 - [ ] **3** Bojanje, upozorenje i presretanje slanja → *demo prvim firmama*
@@ -133,12 +133,28 @@ chatify/
 - `docs/ARCHITECTURE.md`: odluke o tehnologijama, troškovi, model podataka, rizici
 - `docs/plan.md`: plan izrade prve verzije
 - `docs/PROMPTS.md`: gotovi promptovi za Claude Code po fazama
+- `docs/ROADMAP.md`: plan izrade cijelog sustava od ekstenzije do baze
+- `docs/SETUP.md`: što instalirati i kako postaviti računalo
+- `docs/PROGRESS.md`: što je napravljeno po fazama i zašto
 - `CLAUDE.md`: pravila rada i privatnosti
 - **Figma (4 zaslona, klikabilan prototip):** https://www.figma.com/design/ak5nDaMh1rsZdqkYiu8TDb
 
 ## Pokretanje
 
-Kod još nije napisan. Naredbe se dodaju u `CLAUDE.md` i ovdje u Fazi 0. Kako početi s Claude Codeom: prvi odjeljak u `docs/PROMPTS.md`.
+Postavljanje računala (Git, Node.js, Windows PowerShell): `docs/SETUP.md`.
+
+```bash
+git clone https://github.com/chatifyme/chatify.git
+cd chatify
+npm install
+npm run build
+```
+
+Učitavanje u Chrome: `chrome://extensions` → uključi **Developer mode** → **Load unpacked** → odaberi mapu `extension/.output/chrome-mv3`. U Edgeu: `edge://extensions` i mapa `extension/.output/edge-mv3`. Otvori https://chatgpt.com, pritisni F12 → Console: vidi se poruka `[Chatify] content script active`.
+
+Razvoj s automatskim osvježavanjem: `npm run dev -w extension` (otvara novi Chrome s učitanom ekstenzijom).
+
+Prije svakog commita: `npm run lint && npm run typecheck && npm test`. Sve naredbe su u `CLAUDE.md`, odjeljak "Naredbe".
 
 ## Poznata ograničenja
 
