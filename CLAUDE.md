@@ -74,17 +74,16 @@ Detektori i pravila su **čisti moduli bez ovisnosti o pregledniku** da se testi
 
 ## Naredbe
 
-Naredbe nastaju u Fazi 0. **Dok ne postoje, ne izmišljaj ih**; čim nastanu, ažuriraj ovaj odjeljak.
-
-Planirano (npm workspaces, iz korijena):
+Postoje od Faze 0 (iz korijena repozitorija, npm workspaces `shared` i `extension`). Razvoj Workera i ploče dodaje se u kasnijim fazama; do tada za njih ne izmišljaj naredbe.
 
 - Instalacija: `npm install`
 - Svi testovi: `npm test`
 - Provjera tipova: `npm run typecheck`
-- Lint: `npm run lint`
-- Razvoj ekstenzije: `npm run dev -w extension`
-- Razvoj Workera: `npm run dev -w worker`
-- Razvoj ploče: `npm run dev -w dashboard`
+- Lint i format: `npm run lint` (popravak formata: `npm run format`)
+- Build svega: `npm run build`
+- Razvoj ekstenzije (Chrome): `npm run dev -w extension`
+- Razvoj ekstenzije (Edge): `npm run dev:edge -w extension`
+- Build ekstenzije za učitavanje: `npm run build -w extension`, zatim `chrome://extensions`, "Load unpacked", mapa `extension/.output/chrome-mv3`
 
 ## Način rada
 
