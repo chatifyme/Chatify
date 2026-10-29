@@ -47,4 +47,14 @@ describe('detectOib', () => {
   it('ignores a number that follows a plus sign (phone numbers)', () => {
     expect(detectOib('Nazovi +12345678903')).toHaveLength(0);
   });
+
+  it('has high confidence when the word OIB is nearby', () => {
+    const [finding] = detectOib('OIB klijenta je 12345678903.');
+    expect(finding?.confidence).toBe('high');
+  });
+
+  it('has medium confidence without the word OIB nearby', () => {
+    const [finding] = detectOib('Broj je 69435151530 u sustavu');
+    expect(finding?.confidence).toBe('medium');
+  });
 });

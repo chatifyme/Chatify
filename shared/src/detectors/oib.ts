@@ -21,11 +21,14 @@ export function detectOib(text: string): Finding[] {
     if (!isValidOib(value)) continue;
 
     const start = match.index ?? 0;
+    const before = text.slice(Math.max(0, start - 25), start);
+    const hasContext = /\boib\b/i.test(before);
+
     findings.push({
       type: 'OIB',
       start,
       end: start + value.length,
-      confidence: 'medium',
+      confidence: hasContext ? 'high' : 'medium',
     });
   }
 
