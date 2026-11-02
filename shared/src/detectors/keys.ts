@@ -13,6 +13,14 @@ const KEY_RULES: KeyRule[] = [
   { pattern: /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g },
   // OpenAI-style keys; must contain a digit so words like "sk-learn-..." are ignored
   { pattern: /\bsk-[A-Za-z0-9_-]{20,}/g, check: (match) => /\d/.test(match) },
+    // Slack tokens
+  { pattern: /\bxox[abprs]-[A-Za-z0-9-]{10,}/g },
+  // Authorization bearer tokens (the word "Bearer" is included in the match)
+  { pattern: /\bBearer\s+[A-Za-z0-9._~+/-]{20,}=*/g },
+  // PEM private key block; also matches when the END line is missing
+  {
+    pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,
+  },
 ];
 
 export function detectKeys(text: string): Finding[] {
