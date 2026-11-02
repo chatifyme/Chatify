@@ -150,8 +150,6 @@ Učitavanje ekstenzije u Chrome: otvorite `chrome://extensions`, uključite "Dev
 
 Učitavanje ekstenzije u Edge: pokrenite `npm run build:edge -w extension`, otvorite `edge://extensions`, uključite "Developer mode", kliknite "Load unpacked" i odaberite mapu `extension/.output/edge-mv3`. Za razvoj s automatskim osvježavanjem koristite `npm run dev:edge -w extension` i mapu `extension/.output/edge-mv3-dev`.
 
-Učitavanje ekstenzije u Edge: pokrenite `npm run build:edge -w extension`, otvorite `edge://extensions`, uključite "Developer mode", kliknite "Load unpacked" i odaberite mapu `extension/.output/edge-mv3`. Za razvoj s automatskim osvježavanjem koristite `npm run dev:edge -w extension` i mapu `extension/.output/edge-mv3-dev`.
-
 Razvoj s automatskim osvježavanjem: `npm run dev -w extension`. Sve naredbe su u `CLAUDE.md`.
 
 ## Poznata ograničenja
