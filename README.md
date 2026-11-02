@@ -99,8 +99,8 @@ Procjena troškova: ispod 30 € mjesečno tijekom pilota, oko 30 do 60 € kad 
 
 Faze su detaljno opisane u `docs/PROMPTS.md`.
 
-- [ ] **0** Temelj projekta (npm workspaces, WXT, CI)
-- [ ] **1** Detektori OIB / IBAN / ključevi / e-mail u `shared/`
+- [x] **0** Temelj projekta (npm workspaces, WXT, CI)
+- [x] **1** Detektori OIB / IBAN / ključevi / e-mail u `shared/`
 - [ ] **2** Adapter za ChatGPT i rezervni okvir
 - [ ] **3** Bojanje, upozorenje i presretanje slanja → *demo prvim firmama*
 - [ ] **4** Provjera kvalitete prompta (pravila) i panel
