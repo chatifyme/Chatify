@@ -32,7 +32,9 @@ describe('detectIban', () => {
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.type).toBe('IBAN');
-    expect(text.slice(findings[0]?.start, findings[0]?.end)).toBe('HR1210010051863000160');
+    expect(text.slice(findings[0]?.start, findings[0]?.end)).toBe(
+      'HR1210010051863000160',
+    );
   });
 
   it('finds an IBAN written with spaces', () => {
@@ -40,18 +42,22 @@ describe('detectIban', () => {
     const findings = detectIban(text);
 
     expect(findings).toHaveLength(1);
-    expect(text.slice(findings[0]?.start, findings[0]?.end)).toBe('HR12 1001 0051 8630 0016 0');
+    expect(text.slice(findings[0]?.start, findings[0]?.end)).toBe(
+      'HR12 1001 0051 8630 0016 0',
+    );
   });
 
   it('ignores an IBAN with a wrong checksum', () => {
     expect(detectIban('HR1210010051863000161')).toHaveLength(0);
   });
 
-    it('stops before a following upper-case word', () => {
+  it('stops before a following upper-case word', () => {
     const text = 'HR1210010051863000160 HVALA';
     const findings = detectIban(text);
 
-    expect(text.slice(findings[0]?.start, findings[0]?.end)).toBe('HR1210010051863000160');
+    expect(text.slice(findings[0]?.start, findings[0]?.end)).toBe(
+      'HR1210010051863000160',
+    );
   });
 
   it('ignores a valid IBAN that continues with more characters', () => {

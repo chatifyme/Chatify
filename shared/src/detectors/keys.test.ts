@@ -27,11 +27,13 @@ describe('detectKeys', () => {
   });
 
   it('does not flag ordinary text', () => {
-    expect(detectKeys('Napiši mail klijentu o dogovoru od prošlog tjedna.')).toHaveLength(0);
+    expect(detectKeys('Napiši mail klijentu o dogovoru od prošlog tjedna.')).toHaveLength(
+      0,
+    );
     expect(detectKeys('risk-assessment-for-the-company-plan')).toHaveLength(0);
   });
 
-    it('finds a Slack token', () => {
+  it('finds a Slack token', () => {
     expect(covered(slackFake)).toEqual([slackFake]);
   });
 

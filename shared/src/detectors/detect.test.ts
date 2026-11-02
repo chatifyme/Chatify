@@ -23,6 +23,11 @@ describe('detectAll', () => {
   it('returns findings without any copy of the text', () => {
     const [finding] = detectAll('OIB 12345678903');
 
-    expect(Object.keys(finding ?? {}).sort()).toEqual(['confidence', 'end', 'start', 'type']);
+    expect(Object.keys(finding ?? {}).sort()).toEqual([
+      'confidence',
+      'end',
+      'start',
+      'type',
+    ]);
   });
 });
