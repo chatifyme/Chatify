@@ -10,5 +10,11 @@ export default defineConfig({
     description: 'Bolji promptovi i zaštita osjetljivih podataka u AI alatima.',
     permissions: [],
     host_permissions: ['https://chatgpt.com/*', 'https://chat.openai.com/*'],
+     web_accessible_resources: [
+      {
+        resources: ['icon/128.png'],
+        matches: ['https://chatgpt.com/*', 'https://chat.openai.com/*'],
+      },
+    ],
   },
 });
