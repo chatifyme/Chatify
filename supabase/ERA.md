@@ -1,163 +1,182 @@
-# ERA model baze (prijedlog za Fazu 5)
+# ERA model baze
 
-Prijedlog sheme za Supabase prema `docs/ARCHITECTURE.md` (odjeljak 6) i pravilima 2, 6 i 8 iz `CLAUDE.md`. SQL je u `supabase/migrations/20261101000000_init_schema.sql`.
+Cijela shema za Supabase, od Faze 5 do Faze 11 iz `docs/PROMPTS.md`. SQL je u jednoj datoteci: `supabase/migrations/20261102120000_chatify_schema.sql`.
 
-Status: **nacrt za pregled**. Shema je isprobana na lokalnom Postgresu 16 (vidi "Što je provjereno"), ali još nije pregledana u timu.
+Status: **nacrt za pregled u timu**. Shema je isprobana na Postgresu 16 (vidi "Što je provjereno").
+
+## Glavna načela
+
+- **Nema imena, prezimena ni e-pošte** ni u jednoj našoj tablici. Osoba je samo **šifra** (`members.pseudo_id`, nasumični UUID). Podaci za prijavu ostaju u Supabase Authu (`auth.users`), koji mi ne kopiramo ni ne prikazujemo.
+- **Nema teksta prompta** (pravilo 2). Tablica `events` ima samo ID-jeve, enume, brojeve i datume.
+- **Firma A ne vidi firmu B** (pravilo 8). RLS je uključen na svih 16 tablica.
+- **Ploča vidi samo zbrojeve.** Sirovi događaji se ne čitaju; sve ide kroz funkcije koje skrivaju male skupine.
+- **Pregled po osobi** (pravilo 6) traži **oboje**: da ga firma uključi i da zaposlenik sam da pristanak. Svaki takav pregled se bilježi.
 
 ## Dijagram
 
 ```mermaid
 erDiagram
     plans ||--o{ organizations : "plan"
+    organizations ||--|| org_settings : "postavke"
     organizations ||--o{ teams : "ima"
     organizations ||--o{ members : "ima"
     organizations ||--o{ invites : "šalje"
     organizations ||--o{ events : "bilježi"
     organizations ||--o{ policies : "postavlja"
     organizations ||--o{ usage_monthly : "troši"
+    organizations ||--o| subscriptions : "pretplata"
+    organizations ||--o{ report_log : "izvještaji"
+    organizations ||--o{ audit_log : "revizija"
+    organizations ||--o{ consent_log : "pristanci"
     teams |o--o{ members : "pripada"
-    teams |o--o{ invites : "u tim"
-    teams |o--o{ events : "tim"
-    members |o--o{ events : "pseudo_id"
-    auth_users ||--|| members : "user_id"
+    members |o--o{ events : "šifra"
+    members ||--o{ member_usage_monthly : "šifra"
+    auth_users ||--o| members : "prijava"
 
-    plans {
-        text id PK
-        text name
+    plans { text id PK
         int max_seats
         int max_improve_calls_monthly
-    }
-    organizations {
-        uuid id PK
+        bigint monthly_token_quota }
+    organizations { uuid id PK
         text name
-        text plan_id FK
-        timestamptz created_at
-    }
-    teams {
-        uuid id PK
+        text plan_id FK }
+    org_settings { uuid org_id PK
+        bool individual_view_enabled "zadano false"
+        smallint min_group_size "zadano 3"
+        smallint retention_months "zadano 12"
+        ai_tool_array enabled_tools }
+    teams { uuid id PK
         uuid org_id FK
-        text name
-    }
-    members {
-        uuid id PK
-        uuid user_id FK "auth.users, UNIQUE"
+        text name }
+    members { uuid id PK
+        uuid user_id FK "auth.users"
         uuid org_id FK
-        uuid team_id FK "nullable"
-        member_role role "admin | member"
-        uuid pseudo_id "UNIQUE"
-        boolean consent_individual_view "zadano false"
-        timestamptz consent_at
-    }
-    invites {
-        uuid id PK
-        uuid org_id FK
-        uuid team_id FK "nullable"
-        text code "UNIQUE"
-        text email "nullable"
+        uuid team_id FK
         member_role role
-        int max_uses
-        int used_count
-        timestamptz expires_at
-    }
-    events {
-        bigint id PK
+        uuid pseudo_id "ŠIFRA korisnika"
+        bool consent_individual_view "zadano false" }
+    events { bigint id PK
         uuid org_id FK
-        uuid team_id FK "nullable"
-        uuid pseudo_id FK "nullable"
-        ai_tool tool "chatgpt"
-        date week "ponedjeljak"
-        smallint quality_score "0-100"
-        data_type blocked_type "oib | iban | api_key | email"
+        uuid team_id FK
+        uuid pseudo_id FK
+        ai_tool tool
+        browser browser
+        date week
         event_action action
-        timestamptz created_at
-    }
-    policies {
-        uuid id PK
+        smallint quality_score
+        int est_tokens
+        data_type_array blocked_types
+        rule_kind_array rule_hits
+        rule_kind_array rules_applied
+        smallint improve_suggestions
+        smallint improve_applied }
+    policies { uuid id PK
         uuid org_id FK
-        data_type data_type
-        policy_action action "replace | block | warn"
-        boolean enabled
-    }
-    usage_monthly {
-        uuid org_id PK
-        date month PK "1. u mjesecu"
+        policy_category category
+        policy_action action
+        bool enabled }
+    usage_monthly { uuid org_id PK
+        date month PK
         int improve_calls
         bigint tokens_in
-        bigint tokens_out
-    }
-    auth_users {
-        uuid id PK "Supabase Auth"
-    }
+        bigint tokens_out }
+    member_usage_monthly { uuid pseudo_id PK
+        date month PK
+        int improve_calls
+        bigint tokens_in
+        bigint tokens_out }
+    auth_users { uuid id PK }
 ```
 
-GitHub ovaj dijagram prikazuje kao sliku. U VS Codeu treba ekstenzija za Mermaid pregled.
+Uz to postoje i `invites`, `consent_log`, `audit_log`, `adapter_rules`, `subscriptions`, `billing_events` i `report_log` (opisane niže).
 
-## Entiteti
+## Tablice
 
-| Tablica | Što je | Ključni stupci |
-| --- | --- | --- |
-| `plans` | cjenik planova, zajednički za sve | `max_seats`, `max_improve_calls_monthly` |
-| `organizations` | firma (kupac) | `plan_id` |
-| `teams` | tim unutar firme (Prodaja, IT…) | `org_id`, `name` (jedinstven u firmi) |
-| `members` | korisnik u firmi | `user_id`, `role`, `pseudo_id`, `consent_individual_view` |
-| `invites` | pozivni kod za ulazak u firmu | `code`, `expires_at`, `max_uses` |
-| `events` | agregirani događaj iz ekstenzije | `tool`, `week`, `quality_score`, `blocked_type`, `action` |
-| `policies` | pravilo firme po vrsti podatka | `data_type`, `action`, `enabled` |
-| `usage_monthly` | potrošnja "Poboljšaj" po firmi i mjesecu | `improve_calls`, `tokens_in`, `tokens_out` |
+| Tablica                           | Svrha                                                                      | Faza  |
+| --------------------------------- | -------------------------------------------------------------------------- | ----- |
+| `plans`                           | cjenik: mjesta, "Poboljšaj" pozivi i kvota tokena mjesečno                 | 5, 10 |
+| `organizations`                   | firma                                                                      | 5     |
+| `org_settings`                    | privatnost, minimalna skupina, rok čuvanja, alati, tjedni izvještaj        | 5, 7  |
+| `teams`                           | timovi u firmi                                                             | 5     |
+| `members`                         | osoba u firmi: uloga, tim i **šifra** (`pseudo_id`)                        | 5     |
+| `consent_log`                     | dokaz o pristanku (GDPR čl. 7), samo šifra                                 | 5     |
+| `invites`                         | pozivni kodovi (bez e-pošte, admin sam šalje kod)                          | 5     |
+| `events`                          | jedan redak po promptu, samo brojevi i vrste                               | 5     |
+| `policies`                        | pravilo po kategoriji podataka (zamijeni, blokiraj, upozori)               | 3, 7  |
+| `usage_monthly`                   | "Poboljšaj" pozivi i stvarni tokeni po firmi i mjesecu                     | 6     |
+| `member_usage_monthly`            | isto po šifri korisnika                                                    | 6     |
+| `adapter_rules`                   | pravila za pronalaženje polja za unos kao JSON podaci                      | 8     |
+| `subscriptions`, `billing_events` | pretplata i zaštita od dvostruke obrade webhooka; bez podataka o karticama | 10    |
+| `report_log`                      | koji tjedni izvještaj je poslan                                            | 7     |
+| `audit_log`                       | tko je što promijenio (šifra, ne ime)                                      | 11    |
 
-## Veze
+## Što bilježi jedan događaj (`events`)
 
-- Firma ima više timova, članova, poziva, događaja, pravila i mjesečnih zapisa potrošnje. Brisanjem firme briše se sve njezino (`on delete cascade`).
-- Član pripada **jednoj** firmi (u prvoj verziji) i najviše jednom timu.
-- Tim člana, poziva i događaja **mora biti iz iste firme**. To osigurava baza (složeni strani ključ `(team_id, org_id)`), ne samo kod.
-- Događaj je vezan uz člana samo preko `pseudo_id`, nikad preko `user_id` ili e-pošte.
+| Stupac                                   | Primjer                                                                     | Značenje                                                |
+| ---------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `tool`, `browser`                        | `chatgpt`, `edge`                                                           | gdje je prompt napisan                                  |
+| `action`                                 | `sent`, `replaced`, `edited`, `sent_anyway`, `blocked`, `improve_requested` | što je korisnik napravio                                |
+| `quality_score`                          | 72                                                                          | ocjena prompta 0–100                                    |
+| `est_tokens`                             | 340                                                                         | **procjena** tokena iz duljine teksta                   |
+| `blocked_types`, `blocked_count`         | `{oib,iban}`, 2                                                             | koje vrste osjetljivih podataka i koliko                |
+| `rule_hits`, `rules_applied`             | `{vague,no_format}`, `{vague}`                                              | koje provjere su se upalile i koje je korisnik ispravio |
+| `improve_suggestions`, `improve_applied` | 4, 3                                                                        | prijedlozi "Poboljšaj" i koliko ih je primijenjeno      |
 
-## Zašto je ovako (veza s pravilima)
+Firmu, tim i šifru **ne šalje ekstenzija**. Baza ih sama upisuje iz prijavljenog korisnika, pa ih nitko ne može lažirati.
 
-| Pravilo | Kako ga shema provodi |
-| --- | --- |
-| 2: bez teksta prompta | `events` nema nijedan tekstualni stupac. Sve su enumi, brojevi, datumi i ID-jevi, pa tekst prompta fizički ne stane u tablicu. |
-| 2: samo vrsta podatka | `blocked_type` je enum (`oib`, `iban`, `api_key`, `email`), nikad sama vrijednost. |
-| 6: pregled po osobi uz pristanak | `consent_individual_view` je zadano `false`; ako je `true`, mora postojati `consent_at`. |
-| 8: izolacija firmi | RLS je uključen na **svakoj** tablici. Pomoćne funkcije `is_org_member()` i `is_org_admin()`. |
-| Ploča vidi samo zbrojeve | Nitko ne čita sirove `events`. Admin poziva `team_weekly_stats(org)` koja vraća samo zbrojeve po timu i tjednu. |
+## Funkcije
 
-Dodatne provjere u bazi: `week` mora biti ponedjeljak, `month` prvi dan u mjesecu, `quality_score` između 0 i 100, a radnje `replaced`, `edited`, `sent_anyway` i `blocked` moraju imati `blocked_type`.
+| Funkcija                                                 | Tko                 | Što vraća                                                                                                                      |
+| -------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `create_organization(ime, tim)`                          | novi korisnik       | nova firma; stvaratelj postaje admin, dobiva zadana pravila                                                                    |
+| `create_invite(firma, tim, uloga, broj, dani)`           | admin               | pozivni kod                                                                                                                    |
+| `redeem_invite(kod)`                                     | novi korisnik       | ulazak u firmu (provjerava broj mjesta u planu)                                                                                |
+| `set_individual_consent(da/ne)`                          | zaposlenik          | pristanak za pregled po osobi                                                                                                  |
+| `delete_my_data()`                                       | zaposlenik          | brisanje (GDPR čl. 17); prošli događaji ostaju samo kao anonimni brojevi                                                       |
+| `my_policies(alat)`                                      | ekstenzija          | pravila koja vrijede za mene                                                                                                   |
+| `check_improve_quota()`, `record_improve_usage(in, out)` | Worker              | smije li se zvati model; bilježi tokene i javlja kad firma prijeđe 80 %                                                        |
+| `org_overview(firma, dani)`                              | admin               | KPI kartice: aktivni korisnici, promptovi, tokeni, kvaliteta, zaustavljeni podaci, postotak ispravaka, procjena uštede vremena |
+| `team_weekly_stats(firma)`                               | admin               | po timu i tjednu: promptovi, tokeni i **udio tokena u %**, kvaliteta, zaustavljeno po kategoriji, provjere po vrsti, ispravci  |
+| `member_weekly_stats(firma)`                             | admin               | isto **po šifri**, samo uz uključenu postavku i pristanak; svaki poziv se bilježi                                              |
+| `org_usage(firma)`                                       | admin               | iskorišteno mjesta, poziva i tokena ovaj mjesec **u postotku plana**                                                           |
+| `my_weekly_stats()`, `my_usage()`                        | zaposlenik          | moje brojke i moj udio u tokenima (pravo na pristup)                                                                           |
+| `purge_expired_data()`                                   | cron (service role) | briše stare događaje prema roku čuvanja                                                                                        |
 
-## Tko što smije (RLS)
+## GDPR
 
-| Tablica | Član | Admin firme | Druga firma |
-| --- | --- | --- | --- |
-| `plans` | čita | čita | čita (javni cjenik) |
-| `organizations` | čita svoju | čita, mijenja ime | ništa |
-| `teams` | čita | sve | ništa |
-| `members` | čita samo sebe | čita i uređuje svoje članove | ništa |
-| `invites` | ništa | sve | ništa |
-| `events` | samo upisuje **za sebe** | samo preko `team_weekly_stats` | ništa |
-| `policies` | čita | sve | ništa |
-| `usage_monthly` | ništa | čita | ništa |
+| Načelo                      | Kako ga shema provodi                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Smanjenje količine podataka | bez imena, e-pošte i teksta prompta; pozivi bez e-pošte                                                            |
+| Pseudonimizacija            | osoba je samo nasumična šifra                                                                                      |
+| Skrivanje malih skupina     | tim ili firma s manje od 3 aktivne osobe (`min_group_size`) ne prikazuje brojke; mali timovi se spajaju u "ostali" |
+| Pristanak                   | samo zaposlenik ga mijenja; admin ne može (zabranjeno na razini stupca); svaka promjena ide u `consent_log`        |
+| Pravo na pristup            | `my_weekly_stats()`, `my_usage()`                                                                                  |
+| Pravo na brisanje           | `delete_my_data()`; račun za prijavu nakon toga briše Worker                                                       |
+| Ograničenje pohrane         | `purge_expired_data()`: događaji nakon 12 mjeseci (3–24, po firmi), zapisi o reviziji nakon 24 mjeseca             |
+| Odgovornost                 | `audit_log` bilježi promjene pravila, postavki, uloga i svaki pregled po osobi                                     |
+| Podaci u EU-u               | Supabase projekt u regiji **Central EU (Frankfurt)**                                                               |
+
+Service role ključ koristi se samo za webhook naplate, tjedni izvještaj, brisanje računa i `purge_expired_data` (pravilo 8).
 
 ## Što je provjereno
 
-Migracija je pokrenuta na Postgresu 16 sa zamjenom za Supabase Auth (`auth.users`, `auth.uid()`, uloge `anon` i `authenticated`). Prošlo je:
+Shema je pokrenuta na Postgresu 16 s istim zadanim dozvolama kao Supabase. Prošlo je:
 
-- član firme A **ne može** upisati događaj u firmu B ni lažno se predstaviti kao drugi član
-- admin firme A vidi samo svoju firmu i svoje članove, a za firmu B dobiva 0 redaka
-- admin firme A ne može promijeniti ime firme B
-- obični član ne vidi sirove događaje ni statistiku, a admin vidi zbrojeve za svoj tim
-- tim iz druge firme, radnja bez vrste podatka i tjedan koji nije ponedjeljak su odbijeni
+- firma A ne vidi i ne može mijenjati ništa od firme B (statistika, potrošnja, članovi)
+- ekstenzija ne može podmetnuti tuđu firmu ni šifru; član ne čita sirove događaje
+- tim ili firma s 1 osobom ne prikazuje brojke
+- pregled po osobi je isključen dok firma ne uključi postavku **i** zaposlenik ne da pristanak; admin ne može dati pristanak umjesto zaposlenika; svaki pregled je zabilježen
+- postoci potrošnje, kvota "Poboljšaj" i ograničenja tokena
+- zadnji admin se ne može ukloniti; brisanje korisnika ostavlja samo anonimne brojeve
+- anonimni korisnik nema pristup ničemu; stari događaji se brišu
+- `events` nema nijedan tekstualni stupac, a nijedna tablica nema ime ili e-poštu osobe
 
-To **nije** zamjena za prave testove (`supabase test db`) iz Faze 5, koji trebaju pokriti svaku tablicu.
-
-## Ostaje za Fazu 5
-
-- RPC funkcije: `create_organization` (stvaratelj postaje admin), `redeem_invite(code)`, `set_individual_consent(bool)`, `increment_usage(...)` za Worker
-- pregled po osobi za članove s pristankom
-- RLS testovi za svaku tablicu (`supabase test db`) i generirani TypeScript tipovi
+To nije zamjena za prave testove `supabase test db` iz Faze 5.
 
 ## Otvorena pitanja za tim
 
-1. **Jedna firma po korisniku?** Predloženo da (`user_id` je jedinstven). Konzultant u više firmi bi trebao drugačiji model.
-2. **Najmanji broj ljudi u statistici?** Tim od 1 do 2 osobe u zbroju praktički otkriva pojedinca. Predlažemo ne prikazivati redak kad je `active_users < 3`.
-3. **Koliko dugo čuvamo događaje?** Prijedlog: 12 mjeseci, zatim brisanje (dobro za GDPR i besplatnih 500 MB).
-4. **Vrijednosti planova** (`pilot`, `starter`, `pro`) su privremene i služe samo da ograničenja postoje od početka.
+1. **Formula uštede vremena** (`est_minutes_saved`) je privremena: 0,5 min po primijenjenoj provjeri i 1 min po primijenjenom prijedlogu "Poboljšaj". Treba je potvrditi.
+2. **Vrijednosti planova** (mjesta, pozivi, tokeni) su privremene.
+3. **Jedna firma po korisniku?** Predloženo da.
+4. **Supabase Auth i imena:** prijava preko Googlea ili Microsofta sama sprema ime i e-poštu u `auth.users`. To treba spomenuti u politici privatnosti.
+5. Nove funkcije koje se kasnije dodaju u Supabase automatski dobivaju dozvolu za anonimne korisnike; svaku treba ručno zatvoriti (vidi odjeljak 17 u SQL-u).

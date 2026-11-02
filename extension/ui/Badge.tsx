@@ -1,10 +1,16 @@
+import { browser } from 'wxt/browser';
 import { t } from '../i18n';
 
-/** Tiny proof that React + Tailwind render inside the Shadow DOM. Replaced in Phase 3. */
+/** Chatify logo shown on AI tool pages while the extension is active. Replaced in Phase 3. */
 export function Badge() {
+  const label = t('badgeActive');
+
   return (
-    <div className="fixed bottom-4 right-4 rounded-full bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow-lg">
-      {t('badgeActive')}
-    </div>
+    <img
+      src={browser.runtime.getURL('/icon/128.png')}
+      alt={label}
+      title={label}
+      className="fixed bottom-5.5 right-4 z-[2147483647] h-14 w-14 rounded-2xl shadow-lg"
+    />
   );
 }
