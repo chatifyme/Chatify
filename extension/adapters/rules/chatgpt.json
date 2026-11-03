@@ -1,0 +1,11 @@
+{
+  "tool": "chatgpt",
+  "input": {
+    "selector": "[contenteditable=\"true\"][role=\"textbox\"]",
+    "textLineSelector": "p"
+  },
+  "sendButton": {
+    "container": "form",
+    "selector": "button[type=\"submit\"]"
+  }
+}
