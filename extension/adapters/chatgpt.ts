@@ -1,3 +1,4 @@
+import { debounce } from './debounce';
 import rules from './rules/chatgpt.json';
 import { joinLines } from './text';
 
@@ -19,4 +20,33 @@ export function getText(input: HTMLElement): string {
 export function findSendButton(input: HTMLElement): HTMLButtonElement | null {
   const container = input.closest(rules.sendButton.container);
   return container?.querySelector<HTMLButtonElement>(rules.sendButton.selector) ?? null;
+}
+
+const CHANGE_DEBOUNCE_MS = 150;
+
+/**
+ * Calls callback with the prompt text whenever it changes. Re-finds the input on every check,
+ * so it survives ChatGPT replacing the editor when the user switches conversations.
+ * The caller must never log or store the text. Returns a function that stops watching.
+ */
+export function onTextChange(callback: (text: string) => void): () => void {
+  let lastText: string | null = null;
+
+  const check = debounce(() => {
+    const input = findInput();
+    const text = input ? getText(input) : null;
+    if (text === lastText) return;
+    lastText = text;
+    if (text !== null) callback(text);
+  }, CHANGE_DEBOUNCE_MS);
+
+  const observer = new MutationObserver(check);
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+  check();
+
+  return () => observer.disconnect();
 }
