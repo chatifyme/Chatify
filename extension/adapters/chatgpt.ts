@@ -50,3 +50,24 @@ export function onTextChange(callback: (text: string) => void): () => void {
 
   return () => observer.disconnect();
 }
+
+/**
+ * Calls callback with true or false whenever the input appears or disappears.
+ * Returns a function that stops watching.
+ */
+export function onInputPresence(callback: (found: boolean) => void): () => void {
+  let last: boolean | null = null;
+
+  const check = debounce(() => {
+    const found = findInput() !== null;
+    if (found === last) return;
+    last = found;
+    callback(found);
+  }, CHANGE_DEBOUNCE_MS);
+
+  const observer = new MutationObserver(check);
+  observer.observe(document.body, { childList: true, subtree: true });
+  check();
+
+  return () => observer.disconnect();
+}
